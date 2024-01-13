@@ -330,6 +330,7 @@ public class SettingsTab : ITab, IUiService
         UiHelpers.DefaultLineSpace();
 
         DrawModEditorSettings();
+        DrawImagePreviewSettings();
         ImGui.NewLine();
     }
 
@@ -603,6 +604,12 @@ public class SettingsTab : ITab, IUiService
                 _config.DeleteModModifier = v;
                 _config.Save();
             });
+    }
+
+    /// <summary> Draw all settings pertaining to the mod Preview. </summary>
+    private void DrawImagePreviewSettings()
+    {
+        DrawShowPreviewImagesBox();
     }
 
     /// <summary> Draw all settings pertaining to import and export of mods. </summary>
@@ -926,6 +933,21 @@ public class SettingsTab : ITab, IUiService
         ImGui.SameLine();
         ImGuiUtil.LabeledHelpMarker("Enable Debug Mode",
             "[DEBUG] Enable the Debug Tab and Resource Manager Tab as well as some additional data collection. Also open the config window on plugin load.");
+    }
+
+    /// <summary> Draw a checkbox to toggle preview images. </summary>
+    private void DrawShowPreviewImagesBox()
+    {
+        var tmp = _config.ShowPreviewImages;
+        if (ImGui.Checkbox("##showPreviewImages", ref tmp) && tmp != _config.ShowPreviewImages)
+        {
+            _config.ShowPreviewImages = tmp;
+            _config.Save();
+        }
+
+        ImGui.SameLine();
+        ImGuiUtil.LabeledHelpMarker("Show Preview Images",
+            "Enable or disable the showing of preview images loaded from a mod in its' description tab.");
     }
 
     /// <summary> Draw a button that reloads resident resources. </summary>
