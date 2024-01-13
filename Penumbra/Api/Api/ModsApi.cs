@@ -1,8 +1,14 @@
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OtterGui;
 using OtterGui.Compression;
 using OtterGui.Services;
 using Penumbra.Api.Enums;
+using Penumbra.Collections;
 using Penumbra.Communication;
+using Penumbra.GameData.Files.AtchStructs;
+using Penumbra.GameData.Structs;
+using Penumbra.Meta.Manipulations;
 using Penumbra.Mods;
 using Penumbra.Mods.Manager;
 using Penumbra.Services;
@@ -81,6 +87,9 @@ public class ModsApi : IPenumbraApiMods, IApiService, IDisposable
          != Path.TrimEndingDirectorySeparator(Path.GetFullPath(dir.Parent.FullName)))
             return ApiHelpers.Return(PenumbraApiEc.InvalidArgument, args);
 
+        if (ImportManipulations(dir.FullName))
+            Penumbra.Log.Debug($"Imported manipulations from {dir.FullName}.");
+
         _modManager.AddMod(dir, true);
         if (_config.MigrateImportedModelsToV6)
         {
@@ -93,6 +102,52 @@ public class ModsApi : IPenumbraApiMods, IApiService, IDisposable
                 CompressionAlgorithm.Xpress8K, false);
 
         return ApiHelpers.Return(PenumbraApiEc.Success, args);
+    }
+
+    private bool ImportManipulations(string path)
+    {
+        // Check if meta.txt exists
+        var metaFilePath = Path.Combine(path, "meta.txt");
+        if (!File.Exists(metaFilePath))
+            return false;
+
+        // Read and decode the base64 meta manipulation string
+        string base64ManipString;
+        try
+        {
+            base64ManipString = File.ReadAllText(metaFilePath).Trim();
+        }
+        catch
+        {
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(base64ManipString))
+            return false;
+
+        // Convert the decoded bytes to a manipulation string (assuming MetaApi.ConvertManips can handle byte[] input)
+        if (!MetaApi.ConvertManips(base64ManipString, out var manipulation, out _))
+            return false;
+
+        var array = new JArray();
+        if (manipulation is { } cache)
+        {
+            MetaDictionary.SerializeTo(array, cache.GlobalEqp.Select(kvp => kvp));
+            MetaDictionary.SerializeTo(array, cache.Imc.Select(kvp => kvp));
+            MetaDictionary.SerializeTo(array, cache.Eqp.Select(kvp => kvp));
+            MetaDictionary.SerializeTo(array, cache.Eqdp.Select(kvp => kvp));
+            MetaDictionary.SerializeTo(array, cache.Est.Select(kvp => kvp));
+            MetaDictionary.SerializeTo(array, cache.Rsp.Select(kvp => kvp));
+            MetaDictionary.SerializeTo(array, cache.Gmp.Select(kvp => kvp));
+            MetaDictionary.SerializeTo(array, cache.Atch.Select(kvp => kvp));
+        }
+        string defaultModPath = Path.Combine(path, "default_mod.json");
+        string defaultModJson = File.ReadAllText(defaultModPath);
+        JObject root = JObject.Parse(defaultModJson);
+        root["Manipulations"] = array;
+        File.WriteAllText(defaultModPath, root.ToString());
+
+        return true;
     }
 
     public PenumbraApiEc DeleteMod(string modDirectory, string modName)
