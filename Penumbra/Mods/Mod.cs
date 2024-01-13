@@ -65,6 +65,9 @@ public sealed class Mod : IMod
     public HashSet<CustomItemId> PreferredChangedItems { get; internal set; } = [];
     public bool                  Favorite              { get; internal set; } = false;
 
+    // Preview Images
+    public List<string> PreviewImagePaths = new List<string>();
+
     // Options
     public readonly DefaultSubMod   Default;
     public readonly List<IModGroup> Groups = [];
