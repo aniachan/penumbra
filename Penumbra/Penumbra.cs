@@ -24,6 +24,7 @@ using Penumbra.GameData.Data;
 using Penumbra.GameData.Files;
 using Penumbra.Interop.Hooks;
 using Penumbra.Interop.Hooks.ResourceLoading;
+using Penumbra.Mods;
 
 namespace Penumbra;
 
