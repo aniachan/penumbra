@@ -27,6 +27,7 @@ using Penumbra.Interop;
 using Penumbra.Interop.Hooks;
 using Penumbra.Interop.Hooks.PostProcessing;
 using Penumbra.Interop.Hooks.ResourceLoading;
+using Penumbra.Mods;
 
 namespace Penumbra;
 
