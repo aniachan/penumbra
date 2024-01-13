@@ -77,6 +77,7 @@ public partial class ModCreator(
             return false;
 
         modDataChange |= dataEditor.LoadLocalData(mod);
+        LoadPreviewImages(mod);
         LoadDefaultOption(mod);
         LoadAllGroups(mod);
         if (incorporateMetaChanges)
@@ -475,6 +476,26 @@ public partial class ModCreator(
             {
                 Penumbra.Log.Error($"Could not delete incorporated meta file {file}:\n{e}");
             }
+        }
+    }
+    // <summary> Enumerate preview image files for the mod and update PreviewImagePaths
+    public bool LoadPreviewImages(Mod mod)
+    {
+        string[] extensions = { ".png", ".jpg" };
+        DirectoryInfo imagesDirectory = new DirectoryInfo(Path.Combine(mod.ModPath.FullName, "images"));
+
+        try
+        {
+            mod.PreviewImagePaths = imagesDirectory.GetFiles()
+                                      .Where(file => extensions.Contains(file.Extension.ToLower()))
+                                      .Select(file => file.FullName)
+                                      .ToList();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Penumbra.Log.Error($"Error, unable to enumerate mod preview image paths for mod {mod.Name} \n Exception: {ex.Message}");
+            return false;
         }
     }
 }
