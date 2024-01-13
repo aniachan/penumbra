@@ -14,6 +14,7 @@ using Penumbra.Mods.Manager;
 using Penumbra.Services;
 using Penumbra.Mods.Settings;
 using Penumbra.UI.ModsTab.Groups;
+using SixLabors.ImageSharp;
 
 namespace Penumbra.UI.ModsTab;
 
@@ -28,9 +29,11 @@ public class ModPanelEditTab(
     PredefinedTagManager predefinedTagManager,
     ModGroupEditDrawer groupEditDrawer,
     DescriptionEditPopup descriptionPopup,
+    FileDialogService fileDialog,
     AddGroupDrawer addGroupDrawer)
     : ITab, IUiService
 {
+
     private readonly TagButtons _modTags = new();
 
     private ModFileSystem.Leaf _leaf = null!;
@@ -87,6 +90,118 @@ public class ModPanelEditTab(
 
         groupEditDrawer.Draw(_mod);
         descriptionPopup.Draw();
+
+
+        // Preview image upload
+        if (ImGui.Button("Upload Custom Preview Images"))
+        {
+            string imagesFolderPath = Path.Combine(selector.Selected!.ModPath.FullName, "images");
+
+            // Create the "images" folder if it doesn't exist
+            if (!Directory.Exists(imagesFolderPath))
+                Directory.CreateDirectory(imagesFolderPath);
+
+            // Show the file dialog picker to select custom image files
+            fileDialog.OpenFilePicker(
+                "Select Custom Preview Images",
+                "Image Files{.png,.jpg,.jpeg,.webp}",
+                (success, filePaths) =>
+                {
+                    if (success)
+                    {
+                        foreach (string selectedImagePath in filePaths)
+                        {
+                            string destinationPath = Path.Combine(imagesFolderPath, Path.GetFileName(selectedImagePath));
+
+                            try
+                            {
+                                string extension = Path.GetExtension(selectedImagePath).ToLowerInvariant();
+                                string fileNameWithoutExt = Path.GetFileNameWithoutExtension(selectedImagePath);
+
+                                try
+                                {
+                                    if (extension == ".webp")
+                                    {
+                                        destinationPath = Path.Combine(imagesFolderPath, $"{fileNameWithoutExt}.png");
+
+                                        using var image = Image.Load(selectedImagePath); // Automatically decodes WebP if supported
+                                        image.Save(destinationPath); // Save as PNG
+                                    }
+                                    else
+                                    {
+                                        destinationPath = Path.Combine(imagesFolderPath, Path.GetFileName(selectedImagePath));
+                                        File.Copy(selectedImagePath, destinationPath, true);
+                                    }
+
+                                    _mod.PreviewImagePaths.Add(destinationPath);
+                                }
+                                catch (Exception e)
+                                {
+                                    messager.NotificationMessage(e.Message, NotificationType.Error);
+                                }
+
+                            }
+                            catch (Exception e)
+                            {
+                                messager.NotificationMessage(e.Message, NotificationType.Error);
+                            }
+                        }
+                    }
+                },
+                selectionCountMax: 0, // Set the maximum selection count to unlimited
+                startPath: null, // Start the file dialog in the default folder
+                forceStartPath: false // Don't force the start path
+            );
+        }
+
+        if (_mod.PreviewImagePaths.Count > 0)
+        {
+            ImGui.Text("Preview Images:");
+
+            for (int i = 0; i < _mod.PreviewImagePaths.Count; i++)
+            {
+                string imagePath = _mod.PreviewImagePaths[i];
+
+                // Create a unique ID for ImGui widgets
+                string imageId = $"##Image{i}";
+
+                ImGui.BeginGroup();
+
+                // Create a text box for editing the image name
+                string imageName = Path.GetFileNameWithoutExtension(imagePath);
+                if (ImGui.InputText(imageId, ref imageName, 100))
+                {
+                    // Handle the image name change
+                    if (string.IsNullOrWhiteSpace(imageName) || _mod.PreviewImagePaths.Any(p => p != imagePath && Path.GetFileNameWithoutExtension(p) == imageName))
+                    {
+                        // If the user tries to set the image name to blank or the name of another image, reset it to the original value.
+                        imageName = Path.GetFileNameWithoutExtension(imagePath);
+                    }
+                    else
+                    {
+                        string newImagePath = Path.Combine(Path.GetDirectoryName(imagePath) ?? string.Empty, $"{imageName}.png");
+                        // Rename the image file on disk
+                        File.Move(imagePath, newImagePath);
+                        // Update the imagePath with the new name
+                        imagePath = newImagePath;
+                        _mod.PreviewImagePaths[i] = newImagePath;
+                    }
+                }
+
+                ImGui.SameLine();
+
+                // Add a delete button
+                if (ImGui.Button($"Delete{imageId}"))
+                {
+                    // Handle the delete button click
+                    File.Delete(imagePath);
+                    _mod.PreviewImagePaths.RemoveAt(i);
+                    i--;
+                }
+
+                ImGui.EndGroup();
+            }
+        }
     }
 
     public void Reset()
