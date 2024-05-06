@@ -4,11 +4,6 @@ using OtterGui.Raii;
 using OtterGui;
 using OtterGui.Widgets;
 using Penumbra.Mods.Manager;
-using ImGuiScene;
-using System.Collections.Generic;
-using System.Numerics;
-using System.IO;
-using System.Threading.Tasks;
 using Dalamud.Plugin;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
@@ -21,10 +16,10 @@ namespace Penumbra.UI.ModsTab;
 public class ModPanelDescriptionTab : ITab
 {
     private readonly ModFileSystemSelector _selector;
-    private readonly TutorialService       _tutorial;
-    private readonly ModManager            _modManager;
-    private readonly TagButtons            _localTags = new();
-    private readonly TagButtons            _modTags   = new();
+    private readonly TutorialService _tutorial;
+    private readonly ModManager _modManager;
+    private readonly TagButtons _localTags = new();
+    private readonly TagButtons _modTags = new();
     private readonly Configuration _config;
     private DalamudPluginInterface _pi;
     private int _currentImageIndex = 0;
