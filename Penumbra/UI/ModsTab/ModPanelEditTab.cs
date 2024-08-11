@@ -1,16 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Numerics;
 using Dalamud.Interface;
-using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiNotification;
-using Dalamud.Interface.ImGuiFileDialog;
-using Dalamud.Interface.Internal.Notifications;
-using Dalamud.Interface.Utility;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Raii;
@@ -37,6 +27,7 @@ public class ModPanelEditTab(
     PredefinedTagManager predefinedTagManager,
     ModGroupEditDrawer groupEditDrawer,
     DescriptionEditPopup descriptionPopup,
+    FileDialogService fileDialog,
     AddGroupDrawer addGroupDrawer)
     : ITab, IUiService
 {
@@ -95,14 +86,14 @@ public class ModPanelEditTab(
         // Preview image upload
         if (ImGui.Button("Upload Custom Preview Images"))
         {
-            string imagesFolderPath = Path.Combine(_selector.Selected!.ModPath.FullName, "images");
+            string imagesFolderPath = Path.Combine(selector.Selected!.ModPath.FullName, "images");
 
             // Create the "images" folder if it doesn't exist
             if (!Directory.Exists(imagesFolderPath))
                 Directory.CreateDirectory(imagesFolderPath);
 
             // Show the file dialog picker to select custom image files
-            _fileDialog.OpenFilePicker(
+            fileDialog.OpenFilePicker(
                 "Select Custom Preview Images",
                 "Image Files{.png,.jpg,.jpeg}",
                 (success, filePaths) =>
@@ -121,7 +112,7 @@ public class ModPanelEditTab(
                             }
                             catch (Exception e)
                             {
-                                _messager.NotificationMessage(e.Message, NotificationType.Error);
+                                messager.NotificationMessage(e.Message, NotificationType.Error);
                             }
                         }
                     }

@@ -5,12 +5,12 @@ using OtterGui;
 using OtterGui.Services;
 using OtterGui.Widgets;
 using Penumbra.Mods.Manager;
-using Dalamud.Plugin;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Formats.Png;
 using Penumbra.Mods;
-using Dalamud.Interface.Internal;
+using Dalamud.Interface.Textures.TextureWraps;
+using Dalamud.Plugin.Services;
 
 namespace Penumbra.UI.ModsTab;
 
@@ -18,28 +18,15 @@ public class ModPanelDescriptionTab(
     ModFileSystemSelector selector,
     TutorialService tutorial,
     ModManager modManager,
-    PredefinedTagManager predefinedTagsConfig)
+    Configuration config,
+    PredefinedTagManager predefinedTagsConfig,
+    ITextureProvider textureProvider)
     : ITab, IUiService
 {
-    private readonly ModFileSystemSelector _selector;
-    private readonly TutorialService _tutorial;
-    private readonly ModManager _modManager;
     private readonly TagButtons _localTags = new();
     private readonly TagButtons _modTags = new();
-    private readonly Configuration _config;
-    private DalamudPluginInterface _pi;
     private int _currentImageIndex = 0;
     private Task<IDalamudTextureWrap>? _currentImageTexture;
-
-    public ModPanelDescriptionTab(ModFileSystemSelector selector, TutorialService tutorial, ModManager modManager, Configuration config, DalamudPluginInterface pi)
-    {
-        _selector = selector;
-        _tutorial = tutorial;
-        _modManager = modManager;
-        _config = config;
-        _pi = pi;
-        _selector.SelectionChanged += OnSelectionChange;
-    }
 
     public ReadOnlySpan<byte> Label
         => "Description"u8;
@@ -75,11 +62,11 @@ public class ModPanelDescriptionTab(
 
         ImGui.Dummy(ImGuiHelpers.ScaledVector2(2));
 
-        if (_config.ShowPreviewImages == true && _selector.Selected!.PreviewImagePaths.Count > 0)
+        if (config.ShowPreviewImages == true && selector.Selected!.PreviewImagePaths.Count > 0)
         {
             ImGui.Separator();
 
-            List<string> previewImagePaths = _selector.Selected!.PreviewImagePaths;
+            List<string> previewImagePaths = selector.Selected!.PreviewImagePaths;
 
             if (_currentImageTexture == null)
             {
@@ -172,7 +159,8 @@ public class ModPanelDescriptionTab(
         {
             using (FileStream fileStream = File.OpenRead(imagePath))
             {
-                (Image image, _) = await Image.LoadWithFormatAsync(fileStream);
+                
+                Image image = await Image.LoadAsync(fileStream);
 
                 int targetWidth = 500;
                 int targetHeight = 300;
@@ -188,7 +176,8 @@ public class ModPanelDescriptionTab(
                     await image.SaveAsync(stream, new PngEncoder());
 
                     byte[] imageData = stream.ToArray();
-                    return _pi.UiBuilder.LoadImage(imageData);
+                    IDalamudTextureWrap texture = await textureProvider.CreateFromImageAsync(imageData);
+                    return texture;
                 }
             }
         }
