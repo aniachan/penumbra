@@ -14,15 +14,33 @@ using Dalamud.Plugin.Services;
 
 namespace Penumbra.UI.ModsTab;
 
-public class ModPanelDescriptionTab(
-    ModFileSystemSelector selector,
-    TutorialService tutorial,
-    ModManager modManager,
-    Configuration config,
-    PredefinedTagManager predefinedTagsConfig,
-    ITextureProvider textureProvider)
-    : ITab, IUiService
+public class ModPanelDescriptionTab : ITab, IUiService
 {
+    private readonly ModFileSystemSelector selector;
+    private readonly TutorialService tutorial;
+    private readonly ModManager modManager;
+    private readonly Configuration config;
+    private readonly PredefinedTagManager predefinedTagsConfig;
+    private readonly ITextureProvider textureProvider;
+
+    public ModPanelDescriptionTab(
+        ModFileSystemSelector selector,
+        TutorialService tutorial,
+        ModManager modManager,
+        Configuration config,
+        PredefinedTagManager predefinedTagsConfig,
+        ITextureProvider textureProvider)
+    {
+        this.selector = selector;
+        this.tutorial = tutorial;
+        this.modManager = modManager;
+        this.config = config;
+        this.predefinedTagsConfig = predefinedTagsConfig;
+        this.textureProvider = textureProvider;
+
+        selector.SelectionChanged += OnSelectionChange;
+    }
+
     private readonly TagButtons _localTags = new();
     private readonly TagButtons _modTags = new();
     private int _currentImageIndex = 0;

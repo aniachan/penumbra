@@ -14,6 +14,7 @@ using Penumbra.Mods.Manager;
 using Penumbra.Services;
 using Penumbra.Mods.Settings;
 using Penumbra.UI.ModsTab.Groups;
+using SixLabors.ImageSharp;
 
 namespace Penumbra.UI.ModsTab;
 
@@ -98,7 +99,7 @@ public class ModPanelEditTab(
             // Show the file dialog picker to select custom image files
             fileDialog.OpenFilePicker(
                 "Select Custom Preview Images",
-                "Image Files{.png,.jpg,.jpeg}",
+                "Image Files{.png,.jpg,.jpeg,.webp}",
                 (success, filePaths) =>
                 {
                     if (success)
@@ -109,9 +110,31 @@ public class ModPanelEditTab(
 
                             try
                             {
-                                // Copy the selected image file to the destination path
-                                File.Copy(selectedImagePath, destinationPath, true);
-                                _mod.PreviewImagePaths.Add(destinationPath);
+                                string extension = Path.GetExtension(selectedImagePath).ToLowerInvariant();
+                                string fileNameWithoutExt = Path.GetFileNameWithoutExtension(selectedImagePath);
+
+                                try
+                                {
+                                    if (extension == ".webp")
+                                    {
+                                        destinationPath = Path.Combine(imagesFolderPath, $"{fileNameWithoutExt}.png");
+
+                                        using var image = Image.Load(selectedImagePath); // Automatically decodes WebP if supported
+                                        image.Save(destinationPath); // Save as PNG
+                                    }
+                                    else
+                                    {
+                                        destinationPath = Path.Combine(imagesFolderPath, Path.GetFileName(selectedImagePath));
+                                        File.Copy(selectedImagePath, destinationPath, true);
+                                    }
+
+                                    _mod.PreviewImagePaths.Add(destinationPath);
+                                }
+                                catch (Exception e)
+                                {
+                                    messager.NotificationMessage(e.Message, NotificationType.Error);
+                                }
+
                             }
                             catch (Exception e)
                             {
